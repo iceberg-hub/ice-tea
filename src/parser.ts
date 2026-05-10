@@ -1,24 +1,87 @@
 import type { Lexer } from "./lexer";
-import { TokenType } from "./token";
+import { TokenType, type Token, type TokenKey } from "./token";
 
 export class Parser {
-    constructor(private readonly lexer: Lexer) { }
+    private current: Token;
+
+    constructor(private readonly lexer: Lexer) {
+        this.current = this.lexer.nextToken();
+    }
 
     parse(): boolean {
-        const first = this.lexer.nextToken();
+        const valid = this.parseObject();
 
-        if (first.type !== TokenType.LEFT_BRACE) {
+        return valid && this.current.type === TokenType.EOF;
+    }
+
+    private parseObject(): boolean {
+        if (!this.expect(TokenType.LEFT_BRACE)) {
             return false;
         }
 
-        const second = this.lexer.nextToken();
+        // empty object {}
+        if (this.current.type === TokenType.RIGHT_BRACE) {
+            this.advance();
+            return true;
+        }
 
-        if (second.type !== TokenType.RIGHT_BRACE) {
+        if (!this.parsePair()) {
             return false;
         }
 
-        const eof = this.lexer.nextToken();
+        while (this.current.type === TokenType.COMMA) {
+            this.advance();
 
-        return eof.type === TokenType.EOF;
+            if (!this.parsePair()) {
+                return false;
+            }
+        }
+
+        if (!this.expect(TokenType.RIGHT_BRACE)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private parsePair(): boolean {
+        if (!this.expect(TokenType.STRING)) {
+            return false;
+        }
+
+        if (!this.expect(TokenType.COLON)) {
+            return false;
+        }
+
+        return this.parseValue();
+    }
+
+    private parseValue(): boolean {
+        switch (this.current.type) {
+            case TokenType.STRING:
+            case TokenType.NUMBER:
+            case TokenType.TRUE:
+            case TokenType.FALSE:
+            case TokenType.NULL:
+                this.advance();
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    private expect(type: TokenKey): boolean {
+        if (this.current.type !== type) {
+            return false;
+        }
+
+        this.advance();
+
+        return true;
+    }
+
+    private advance() {
+        this.current = this.lexer.nextToken();
     }
 }
