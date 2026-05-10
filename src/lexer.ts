@@ -24,6 +24,12 @@ export class Lexer {
             case "}":
                 this.position++;
                 return this.token(TokenType.RIGHT_BRACE, "}");
+            case "[":
+                this.position++;
+                return this.token(TokenType.LEFT_BRACKET, "[");
+            case "]":
+                this.position++;
+                return this.token(TokenType.RIGHT_BRACKET, "]");
             case ":":
                 this.position++;
                 return this.token(TokenType.COLON, ":");

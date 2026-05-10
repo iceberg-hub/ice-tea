@@ -1,3 +1,4 @@
+import type { JSONValue, JSONObject, JSONArray } from "./json";
 import type { Lexer } from "./lexer";
 import { TokenType, type Token, type TokenKey } from "./token";
 
@@ -8,77 +9,118 @@ export class Parser {
         this.current = this.lexer.nextToken();
     }
 
-    parse(): boolean {
-        const valid = this.parseObject();
+    parse(): JSONValue {
+        const value = this.parseValue();
 
-        return valid && this.current.type === TokenType.EOF;
+        if (this.current.type !== TokenType.EOF) {
+            throw new SyntaxError("Unexpected token after JSON");
+        }
+
+        return value;
     }
 
-    private parseObject(): boolean {
-        if (!this.expect(TokenType.LEFT_BRACE)) {
-            return false;
-        }
+    private parseObject(): JSONObject {
+        this.expect(TokenType.LEFT_BRACE);
 
-        // empty object {}
+        const object: JSONObject = {};
+
         if (this.current.type === TokenType.RIGHT_BRACE) {
             this.advance();
-            return true;
+            return object;
         }
 
-        if (!this.parsePair()) {
-            return false;
+        while (true) {
+            const [key, value] = this.parsePair();
+
+            object[key] = value;
+
+            if (this.current.type === TokenType.COMMA) {
+                this.advance();
+                continue;
+            }
+
+            break;
         }
+
+        this.expect(TokenType.RIGHT_BRACE);
+
+        return object;
+    }
+
+    private parsePair(): [string, JSONValue] {
+        const key = this.current.value;
+
+        this.expect(TokenType.STRING);
+        this.expect(TokenType.COLON);
+
+        const value = this.parseValue();
+
+        return [key, value];
+    }
+
+    private parseArray(): JSONArray {
+        this.expect(TokenType.LEFT_BRACKET);
+
+        const array: JSONArray = [];
+
+        if (this.current.type === TokenType.RIGHT_BRACKET) {
+            this.advance();
+            return array;
+        }
+
+        array.push(this.parseValue());
 
         while (this.current.type === TokenType.COMMA) {
             this.advance();
 
-            if (!this.parsePair()) {
-                return false;
-            }
+            array.push(this.parseValue());
         }
 
-        if (!this.expect(TokenType.RIGHT_BRACE)) {
-            return false;
-        }
+        this.expect(TokenType.RIGHT_BRACKET);
 
-        return true;
+        return array;
     }
 
-    private parsePair(): boolean {
-        if (!this.expect(TokenType.STRING)) {
-            return false;
-        }
-
-        if (!this.expect(TokenType.COLON)) {
-            return false;
-        }
-
-        return this.parseValue();
-    }
-
-    private parseValue(): boolean {
+    private parseValue(): JSONValue {
         switch (this.current.type) {
-            case TokenType.STRING:
-            case TokenType.NUMBER:
+            case TokenType.STRING: {
+                const value = this.current.value;
+                this.advance();
+                return value;
+            }
+            case TokenType.NUMBER: {
+                const value = Number(this.current.value);
+                this.advance();
+                return value;
+            }
             case TokenType.TRUE:
-            case TokenType.FALSE:
-            case TokenType.NULL:
                 this.advance();
                 return true;
-
-            default:
+            case TokenType.FALSE:
+                this.advance();
                 return false;
+            case TokenType.NULL:
+                this.advance();
+                return null;
+            case TokenType.LEFT_BRACE:
+                return this.parseObject();
+            case TokenType.LEFT_BRACKET:
+                return this.parseArray();
+            default:
+                throw new SyntaxError(
+                    `Unexpected token: ${this.current.type}`
+                );
         }
     }
 
-    private expect(type: TokenKey): boolean {
+    private expect(type: TokenKey) {
         if (this.current.type !== type) {
-            return false;
+            throw new SyntaxError(
+                `Expected ${type}, got ${this.current.type}`
+            );
         }
 
         this.advance();
-
-        return true;
     }
 
     private advance() {
