@@ -2,8 +2,11 @@ import type { JSONValue, JSONObject, JSONArray } from "./json";
 import type { Lexer } from "./lexer";
 import { TokenType, type Token, type TokenKey } from "./token";
 
+const MAX_DEPTH = 19;
+
 export class Parser {
     private current: Token;
+    private depth = 0;
 
     constructor(private readonly lexer: Lexer) {
         this.current = this.lexer.nextToken();
@@ -20,12 +23,14 @@ export class Parser {
     }
 
     private parseObject(): JSONObject {
+        this.checkDepth();
         this.expect(TokenType.LEFT_BRACE);
 
         const object: JSONObject = {};
 
         if (this.current.type === TokenType.RIGHT_BRACE) {
             this.advance();
+            this.depth--;
             return object;
         }
 
@@ -43,6 +48,7 @@ export class Parser {
         }
 
         this.expect(TokenType.RIGHT_BRACE);
+        this.depth--;
 
         return object;
     }
@@ -59,12 +65,14 @@ export class Parser {
     }
 
     private parseArray(): JSONArray {
+        this.checkDepth();
         this.expect(TokenType.LEFT_BRACKET);
 
         const array: JSONArray = [];
 
         if (this.current.type === TokenType.RIGHT_BRACKET) {
             this.advance();
+            this.depth--;
             return array;
         }
 
@@ -77,6 +85,7 @@ export class Parser {
         }
 
         this.expect(TokenType.RIGHT_BRACKET);
+        this.depth--;
 
         return array;
     }
@@ -110,6 +119,13 @@ export class Parser {
                 throw new SyntaxError(
                     `Unexpected token: ${this.current.type}`
                 );
+        }
+    }
+
+    private checkDepth(): void {
+        this.depth++;
+        if (this.depth > MAX_DEPTH) {
+            throw new SyntaxError("Max depth exceeded");
         }
     }
 

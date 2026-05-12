@@ -58,21 +58,71 @@ export class Lexer {
 
         let value = "";
 
-        while (
-            this.position < this.input.length &&
-            this.input[this.position] !== '"'
-        ) {
-            value += this.input[this.position];
+        while (this.position < this.input.length) {
+            const char = this.input[this.position] ?? "";
+
+            if (char === '"') {
+                this.position++; // closing quote
+                return this.token(TokenType.STRING, value);
+            }
+
+            if (char === "\\") {
+                this.position++;
+                const escape = this.input[this.position] ?? "";
+
+                switch (escape) {
+                    case '"':
+                        value += '"';
+                        break;
+                    case "\\":
+                        value += "\\";
+                        break;
+                    case "/":
+                        value += "/";
+                        break;
+                    case "b":
+                        value += "\b";
+                        break;
+                    case "f":
+                        value += "\f";
+                        break;
+                    case "n":
+                        value += "\n";
+                        break;
+                    case "r":
+                        value += "\r";
+                        break;
+                    case "t":
+                        value += "\t";
+                        break;
+                    case "u": {
+                        const hex = this.input.slice(this.position + 1, this.position + 5);
+                        if (hex.length < 4 || !/^[0-9a-fA-F]{4}$/.test(hex)) {
+                            return this.token(TokenType.INVALID, value);
+                        }
+                        value += String.fromCodePoint(Number.parseInt(hex, 16));
+                        this.position += 4;
+                        break;
+                    }
+                    default:
+                        return this.token(TokenType.INVALID, value);
+                }
+
+                this.position++;
+                continue;
+            }
+
+            // Reject unescaped control characters (U+0000 - U+001F)
+            if (char <= "\u001F") {
+                return this.token(TokenType.INVALID, value);
+            }
+
+            value += char;
             this.position++;
         }
 
-        if (this.position >= this.input.length) {
-            return this.token(TokenType.INVALID, value);
-        }
-
-        this.position++; // closing quote
-
-        return this.token(TokenType.STRING, value);
+        // Reached end of input without closing quote
+        return this.token(TokenType.INVALID, value);
     }
 
     private readNumber(): Token {
@@ -83,12 +133,67 @@ export class Lexer {
             this.position++;
         }
 
+        // Read integer part
+        let integerPart = "";
         while (
             this.position < this.input.length &&
             this.isDigit(this.input[this.position] ?? "")
         ) {
+            integerPart += this.input[this.position];
+            this.position++;
+        }
+
+        if (integerPart === "") {
+            return this.token(TokenType.INVALID, value);
+        }
+
+        value += integerPart;
+
+        const hasLeadingZero = integerPart.length > 1 && integerPart[0] === "0";
+
+        // Decimal part
+        if (this.position < this.input.length && this.input[this.position] === ".") {
+            value += ".";
+            this.position++;
+
+            if (this.position >= this.input.length || !this.isDigit(this.input[this.position] ?? "")) {
+                return this.token(TokenType.INVALID, value);
+            }
+
+            while (
+                this.position < this.input.length &&
+                this.isDigit(this.input[this.position] ?? "")
+            ) {
+                value += this.input[this.position];
+                this.position++;
+            }
+        }
+
+        // Exponent part
+        if (this.position < this.input.length && /[eE]/.test(this.input[this.position] ?? "")) {
             value += this.input[this.position];
             this.position++;
+
+            if (this.position < this.input.length && /[+-]/.test(this.input[this.position] ?? "")) {
+                value += this.input[this.position];
+                this.position++;
+            }
+
+            if (this.position >= this.input.length || !this.isDigit(this.input[this.position] ?? "")) {
+                return this.token(TokenType.INVALID, value);
+            }
+
+            while (
+                this.position < this.input.length &&
+                this.isDigit(this.input[this.position] ?? "")
+            ) {
+                value += this.input[this.position];
+                this.position++;
+            }
+        }
+
+        if (hasLeadingZero) {
+            return this.token(TokenType.INVALID, value);
         }
 
         return this.token(TokenType.NUMBER, value);

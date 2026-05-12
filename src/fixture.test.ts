@@ -17,6 +17,10 @@ function expectParseError(input: string) {
 
 describe("fixture", () => {
     describe("pass fixtures", () => {
+        test("pass1.json (full JSON test)", () => {
+            expectParse(readFileSync("fixture/pass1.json", "utf-8"));
+        });
+
         test("pass2.json (deeply nested array)", () => {
             expectParse(readFileSync("fixture/pass2.json", "utf-8"));
         });
@@ -24,10 +28,6 @@ describe("fixture", () => {
         test("pass3.json (nested object)", () => {
             expectParse(readFileSync("fixture/pass3.json", "utf-8"));
         });
-
-        test.todo(
-            "pass1.json (full JSON test - parser does not yet support decimals or escape sequences)",
-        );
     });
 
     describe("fail fixtures that correctly throw", () => {
@@ -129,40 +129,40 @@ describe("fixture", () => {
     });
 
     describe("fail fixtures that are known limitations", () => {
-        test.todo(
-            "fail1.json (top-level string - parser allows any top-level value which matches RFC 8259)",
-        );
+        test("fail1.json (top-level string - parser allows any top-level value which matches RFC 8259)", () => {
+            expectParse(readFileSync("fixture/fail1.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail13.json (leading zeros - parser does not validate number format)",
-        );
+        test("fail13.json (leading zeros)", () => {
+            expectParseError(readFileSync("fixture/fail13.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail15.json (illegal escape - parser does not validate string escapes)",
-        );
+        test("fail15.json (illegal escape)", () => {
+            expectParseError(readFileSync("fixture/fail15.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail17.json (illegal octal escape - parser does not validate string escapes)",
-        );
+        test("fail17.json (illegal octal escape)", () => {
+            expectParseError(readFileSync("fixture/fail17.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail18.json (too deep - parser has no depth limit)",
-        );
+        test("fail18.json (too deep)", () => {
+            expectParseError(readFileSync("fixture/fail18.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail25.json (tab in string - parser does not validate string content)",
-        );
+        test("fail25.json (tab in string)", () => {
+            expectParseError(readFileSync("fixture/fail25.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail26.json (backslash in string - parser does not validate string escapes)",
-        );
+        test("fail26.json (backslash in string)", () => {
+            expectParseError(readFileSync("fixture/fail26.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail27.json (line break in string - parser allows multi-line strings)",
-        );
+        test("fail27.json (line break in string)", () => {
+            expectParseError(readFileSync("fixture/fail27.json", "utf-8"));
+        });
 
-        test.todo(
-            "fail28.json (escaped line break - parser does not validate string escapes)",
-        );
+        test("fail28.json (escaped line break)", () => {
+            expectParseError(readFileSync("fixture/fail28.json", "utf-8"));
+        });
     });
 });
