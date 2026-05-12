@@ -15,15 +15,9 @@ try {
     const lexer = new Lexer(content);
     const parser = new Parser(lexer);
 
-    const valid = parser.parse();
+    const parsed = parser.parse();
 
-    if (valid) {
-        console.log("Valid JSON");
-        process.exit(0);
-    }
-
-    console.log("Invalid JSON");
-    process.exit(1);
+    console.log(JSON.stringify(parsed, null, 2));
 } catch (error) {
     console.error(error);
     process.exit(1);

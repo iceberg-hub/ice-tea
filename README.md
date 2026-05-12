@@ -1,6 +1,6 @@
 # ice-tea
 
-A JSON validator built from scratch with bun and TypeScript.
+A JSON parser built from scratch with bun and TypeScript.
 
 ## How to run
 
